@@ -27,7 +27,7 @@ INSERT INTO TABLE BI.ATTRIB_EVENTS
     FROM tracks
     WHERE  path = '/vip'
     and ds >=  cast(DATE_SUB(CURRENT_DATE,1) as string)
-    and ds < cast(CURRENT_DATE as string)
+    and ds <  cast(DATE_ADD(CURRENT_DATE,1) as string)
     and usr.uid is not null
     and (get_json_object(platform.fragment, '$.deal_print_id') is not null or get_json_object(platform.fragment, '$.c_id') = '/home/promotions/element');
 
@@ -60,8 +60,8 @@ INNER JOIN
        CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)) as order_exact_date,
        from_unixtime(unix_timestamp(CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)), 'yyyy-MM-dd HH:mm:ss') - 86400) as order_exact_date_sub_24h
     FROM default.tracks
-    WHERE ds >=  concat(SUBSTR(cast(CURRENT_DATE - interval '1' day as string),0,10), ' 00')
-    and ds <= concat(SUBSTR(cast(CURRENT_DATE - interval '1' day as string),0,10), ' 23') --genera el mismo dia del odr_created_dt
+    WHERE ds >=  concat(CURRENT_DATE, ' 00')
+    and ds <= concat(SUBSTR(cast(CURRENT_DATE + interval '1' day as string),0,10), ' 00') --genera el mismo dia del odr_created_dt
     and path = '/orders/ordercreated' ) orders
   on bids.ord_order_id = orders.ord_order_id
 INNER JOIN bi.attrib_events at
@@ -72,8 +72,8 @@ INNER JOIN bi.attrib_events at
   AND at.ite_item_id = trim(concat(bids.sit_site_id,cast(bids.ite_item_id as string)))
 WHERE bids.ite_gmv_flag = 1
 AND bids.mkt_marketplace_id = 'TM'
-AND bids.ord_created_dt  between CURRENT_DATE - interval '1' day and CURRENT_DATE - interval '1' day
-and bids.tim_day_winning_date between CURRENT_DATE - interval '1' day and CURRENT_DATE - interval '1' day
+AND bids.ord_created_dt  = CURRENT_DATE - interval '1' day
+and bids.tim_day_winning_date = CURRENT_DATE - interval '1' day
 AND bids.ite_today_promotion_flag = 1
 GROUP BY CONCAT(cast(bids.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(bids.tim_time_winning_date+1000000 AS string),2,2)),
       SUBSTR(CAST(bids.tim_time_winning_date+1000000 AS string),2,2),
@@ -113,7 +113,7 @@ SELECT
           END) AS SI,
       a11.TIM_DAY_WINNING_DATE AS fecha  
 FROM melilake.BT_BIDS a11
-WHERE cast(a11.TIM_DAY_WINNING_DATE as date) BETWEEN CURRENT_DATE - interval '1' day and CURRENT_DATE - interval '1' day
+WHERE cast(a11.TIM_DAY_WINNING_DATE as date) = CURRENT_DATE - interval '1' day
 AND a11.ITE_GMV_FLAG = 1
 AND a11.MKT_MARKETPLACE_ID = 'TM'
 GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)),
@@ -148,7 +148,7 @@ SELECT
   SUM((a11.BID_QUANTITY_OK)) AS SI,
   a11.TIM_DAY_WINNING_DATE AS fecha
 FROM melilake.BT_BIDS a11
-WHERE cast(a11.TIM_DAY_WINNING_DATE as date) BETWEEN CURRENT_DATE - interval '1' day and CURRENT_DATE - interval '1' day
+WHERE cast(a11.TIM_DAY_WINNING_DATE as date) = CURRENT_DATE - interval '1' day
 AND a11.ITE_GMV_FLAG = 1
 AND a11.MKT_MARKETPLACE_ID = 'TM'
 GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)),
