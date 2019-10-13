@@ -1,17 +1,3 @@
-DROP TABLE BI.ATTRIB_EVENTS_GLOBAL;
-
---CREO TABLA TEMPORAL
-CREATE TABLE BI.ATTRIB_EVENTS_GLOBAL
-(
-SIT_SITE_ID  STRING,
-    UID  STRING,
-    ITE_ITEM_ID  STRING,
-    PLATFORM  STRING,
-    EVENT_EXACT_DATE  STRING,
-    LANDING  STRING
-)   STORED AS PARQUET
-LOCATION 's3://melidata-results-batch/promotions/attrib_events_global/';
-
 INSERT INTO TABLE BI.ATTRIB_EVENTS_GLOBAL
     SELECT
     distinct application.site_id as sit_site_id,
@@ -66,26 +52,20 @@ INNER JOIN
     and path = '/orders/ordercreated' ) orders
   on bids.ord_order_id = orders.ord_order_id
 INNER JOIN
-       (select  sit_site_id,
+       (select distinct sit_site_id,
                  uid,
                  platform,
                  ite_item_id,
-                 max(event_exact_date) as event_exact_date,
+                 event_exact_date,
                  99 as landing
         from BI.ATTRIB_EVENTS_GLOBAL
-        group by sit_site_id,
-                 uid,
-                 platform,
-                 ite_item_id,
-                 max(event_exact_date),
-                 99
         ) at
-        ON (
+        ON
            at.sit_site_id = orders.sit_site_id
           AND at.uid = orders.uid
           AND at.event_exact_date >= order_exact_date_sub_24h
           AND at.event_exact_date <  order_exact_date
-          AND at.ite_item_id = trim(concat(bids.sit_site_id,cast(bids.ite_item_id as varchar)))
+          AND at.ite_item_id = trim(concat(bids.sit_site_id,cast(bids.ite_item_id as string)))
 WHERE bids.ite_gmv_flag = 1
 AND bids.mkt_marketplace_id = 'TM'
 AND bids.ord_created_dt  = DATE_SUB(<fecha_analisis>,1) 
