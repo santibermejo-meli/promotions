@@ -33,7 +33,7 @@ INSERT INTO TABLE BI.ATTRIB_EVENTS
 
 ALTER TABLE bi.promotions_gmv SET TBLPROPERTIES('EXTERNAL'='FALSE');
 
-ALTER TABLE bi.promotions_gmv DROP IF EXISTS PARTITION (FECHA = cast(DATE_SUB(CURRENT_DATE,1) as string));
+-- ALTER TABLE bi.promotions_gmv DROP IF EXISTS PARTITION (FECHA = cast(DATE_SUB(CURRENT_DATE,1) as string));
 
 -- GMV Atribuido por origen
 INSERT INTO TABLE bi.promotions_gmv PARTITION (fecha)
