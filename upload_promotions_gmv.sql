@@ -33,8 +33,9 @@ INSERT INTO TABLE BI.ATTRIB_EVENTS
 
 ALTER TABLE bi.promotions_gmv SET TBLPROPERTIES('EXTERNAL'='FALSE');
 
--- GMV Atribuido por origen
+ALTER TABLE bi.promotions_gmv DROP IF EXISTS PARTITION (FECHA = cast(DATE_SUB(CURRENT_DATE,1) as string));
 
+-- GMV Atribuido por origen
 INSERT INTO TABLE bi.promotions_gmv PARTITION (fecha)
 SELECT
       CONCAT(cast(bids.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(bids.tim_time_winning_date+1000000 AS string),2,2)) AS FechaHora,
@@ -130,7 +131,7 @@ INNER JOIN
                  ite_item_id,
                  event_exact_date,
                  99 as landing
-        from BI.ATTRIB_EVENTS_GLOBAL
+        from BI.ATTRIB_EVENTS
         ) at
         ON
            at.sit_site_id = orders.sit_site_id
@@ -157,6 +158,8 @@ GROUP BY CONCAT(cast(bids.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(bids.t
       '24 HOURS',
       bids.TIM_DAY_WINNING_DATE;
       
+      
+-- GMV NO ATTRIBUTION      
 INSERT INTO TABLE bi.promotions_gmv PARTITION (fecha)
 SELECT
       CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)) AS FechaHora,
@@ -169,7 +172,7 @@ SELECT
       a11.CAT_CATEG_NAME_L2 AS category_name_L2,
       a11.CAT_CATEG_NAME_L3 AS category_name_L3,
       'NA' as platform,
-      null as landing,
+      100 as landing,
       'NO ATTRIBUTION' as atr_type,
       SUM(CASE
            WHEN a11.ITE_TODAY_PROMOTION_FLAG = 1 THEN (a11.BID_BASE_CURRENT_PRICE * a11.BID_QUANTITY_OK)
@@ -181,7 +184,7 @@ SELECT
           END) AS SI,
       a11.TIM_DAY_WINNING_DATE AS fecha  
 FROM melilake.BT_BIDS a11
-WHERE cast(a11.TIM_DAY_WINNING_DATE as date) BETWEEN CURRENT_DATE - interval '1' day and CURRENT_DATE - interval '1' day
+WHERE a11.TIM_DAY_WINNING_DATE = DATE_SUB(CURRENT_DATE,1) 
 AND a11.ITE_GMV_FLAG = 1
 AND a11.MKT_MARKETPLACE_ID = 'TM'
 GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)),
@@ -194,10 +197,11 @@ GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim
       a11.CAT_CATEG_NAME_L2,
       a11.CAT_CATEG_NAME_L3,
       'NA',
-      null,
-      '24 HOURS',
+      100,
+      'NO ATTRIBUTION'
       a11.TIM_DAY_WINNING_DATE;
 
+-- GMV TOTAL SITE
 INSERT INTO TABLE bi.promotions_gmv PARTITION (fecha)
 SELECT
   CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)) AS FechaHora,
@@ -210,15 +214,15 @@ SELECT
   a11.CAT_CATEG_NAME_L3 AS category_name_L3,
   a11.SIT_SITE_ID AS sit_site_id,
   'NA' as platform,
-  null as landing,
+  100 as landing,
   'TOTAL SITE' as atr_type,
   SUM((a11.BID_BASE_CURRENT_PRICE * a11.BID_QUANTITY_OK)) AS GMVE,
   SUM((a11.BID_QUANTITY_OK)) AS SI,
   a11.TIM_DAY_WINNING_DATE AS fecha
 FROM melilake.BT_BIDS a11
-WHERE cast(a11.TIM_DAY_WINNING_DATE as date) BETWEEN CURRENT_DATE - interval '1' day and CURRENT_DATE - interval '1' day
-AND a11.ITE_GMV_FLAG = 1
-AND a11.MKT_MARKETPLACE_ID = 'TM'
+WHERE a11.TIM_DAY_WINNING_DATE = DATE_SUB(CURRENT_DATE,1) 
+  AND a11.ITE_GMV_FLAG = 1
+  AND a11.MKT_MARKETPLACE_ID = 'TM'
 GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)),
       SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2),
       a11.sit_site_id,
@@ -229,7 +233,7 @@ GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim
       a11.CAT_CATEG_NAME_L2,
       a11.CAT_CATEG_NAME_L3,
       'NA',
-      null,
+      100,
       'TOTAL SITE',
       a11.TIM_DAY_WINNING_DATE;
 
