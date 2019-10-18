@@ -22,7 +22,7 @@ INSERT INTO TABLE BI.ATTRIB_EVENTS
               get_json_object(event_data, '$.items')
     ),get_json_object(event_data, '$.item_id')) as ite_item_id,
     device.platform as platform,
-    CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)) as event_exact_date,
+    CONCAT(SUBSTR(server_timestamp,1,10),' ',SUBSTR(server_timestamp,12,8)) as event_exact_date,
     CASE WHEN get_json_object(platform.fragment, '$.c_id') = '/home/promotions/element' THEN 0 ELSE 1 END as landing
     FROM tracks
     WHERE  path = '/vip'
@@ -33,7 +33,7 @@ INSERT INTO TABLE BI.ATTRIB_EVENTS
 
 ALTER TABLE bi.promotions_gmv SET TBLPROPERTIES('EXTERNAL'='FALSE');
 
-ALTER TABLE bi.promotions_gmv DROP IF EXISTS PARTITION (FECHA = cast(DATE_SUB(CURRENT_DATE,1) as string));
+-- ALTER TABLE bi.promotions_gmv DROP IF EXISTS PARTITION (FECHA = cast(DATE_SUB(CURRENT_DATE,1) as string));
 
 -- GMV Atribuido por origen
 INSERT INTO TABLE bi.promotions_gmv PARTITION (fecha)
@@ -59,7 +59,7 @@ INNER JOIN
        application.site_id as sit_site_id,
        cast(get_json_object(event_data, '$.order_id') AS DECIMAL(18,0)) as ord_order_id,
        usr.uid as uid,
-       CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)) as order_exact_date,
+       CONCAT(SUBSTR(server_timestamp,1,10),' ',SUBSTR(server_timestamp,12,8)) as order_exact_date,
        from_unixtime(unix_timestamp(CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)), 'yyyy-MM-dd HH:mm:ss') - 86400) as order_exact_date_sub_24h
     FROM default.tracks
     WHERE ds >=  concat(cast(DATE_SUB(CURRENT_DATE,1) as string), ' 00')
@@ -117,8 +117,8 @@ INNER JOIN
        application.site_id as sit_site_id,
        cast(get_json_object(event_data, '$.order_id') AS DECIMAL(18,0)) as ord_order_id,
        usr.uid as uid,
-       CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)) as order_exact_date,
-       from_unixtime(unix_timestamp(CONCAT(SUBSTR(server_timestamp,0,10),' ',SUBSTR(server_timestamp,12,8)), 'yyyy-MM-dd HH:mm:ss') - 86400) as order_exact_date_sub_24h
+       CONCAT(SUBSTR(server_timestamp,1,10),' ',SUBSTR(server_timestamp,12,8)) as order_exact_date,
+       from_unixtime(unix_timestamp(CONCAT(SUBSTR(server_timestamp,1,10),' ',SUBSTR(server_timestamp,12,8)), 'yyyy-MM-dd HH:mm:ss') - 86400) as order_exact_date_sub_24h
     FROM default.tracks
     WHERE ds >=  concat(cast(DATE_SUB(CURRENT_DATE,1) as string), ' 00')
     and ds <= concat(CURRENT_DATE, ' 00') --genera el mismo dia del odr_created_dt
@@ -202,6 +202,7 @@ GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim
       a11.TIM_DAY_WINNING_DATE;
 
 -- GMV TOTAL SITE
+-- GMV TOTAL SITE
 INSERT INTO TABLE bi.promotions_gmv PARTITION (fecha)
 SELECT
   CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)) AS FechaHora,
@@ -220,7 +221,7 @@ SELECT
   SUM((a11.BID_QUANTITY_OK)) AS SI,
   a11.TIM_DAY_WINNING_DATE AS fecha
 FROM melilake.BT_BIDS a11
-WHERE a11.TIM_DAY_WINNING_DATE = DATE_SUB(CURRENT_DATE,1) 
+WHERE cast(a11.TIM_DAY_WINNING_DATE as string) = cast(DATE_SUB(CURRENT_DATE,1) as string)
   AND a11.ITE_GMV_FLAG = 1
   AND a11.MKT_MARKETPLACE_ID = 'TM'
 GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim_time_winning_date+1000000 AS string),2,2)),
@@ -236,6 +237,11 @@ GROUP BY CONCAT(cast(a11.TIM_DAY_WINNING_DATE as string),' ',SUBSTR(CAST(a11.tim
       100,
       'TOTAL SITE',
       a11.TIM_DAY_WINNING_DATE;
+
+ALTER TABLE bi.promotions_gmv SET TBLPROPERTIES('EXTERNAL'='TRUE');
+
+--BORRO TABLE TEMPORAL
+DROP TABLE BI.ATTRIB_EVENTS;
 
 ALTER TABLE bi.promotions_gmv SET TBLPROPERTIES('EXTERNAL'='TRUE');
 
