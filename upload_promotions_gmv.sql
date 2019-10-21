@@ -119,6 +119,7 @@ INNER JOIN
     (SELECT
        application.site_id as sit_site_id,
        cast(get_json_object(event_data, '$.order_id') AS DECIMAL(18,0)) as ord_order_id,
+       usr.user_id as user_id,
        usr.uid as uid,
        device.platform as platform,
        CONCAT(SUBSTR(server_timestamp,1,10),' ',SUBSTR(server_timestamp,12,8)) as order_exact_date,
@@ -130,11 +131,12 @@ INNER JOIN
   on bids.ord_order_id = orders.ord_order_id
 INNER JOIN
        (select distinct sit_site_id,
-                 uid,
-                 platform,
-                 ite_item_id,
-                 event_exact_date,
-                 99 as landing
+           user_id,
+           uid,
+           platform,
+           ite_item_id,
+           event_exact_date,
+           99 as landing
         from BI.ATTRIB_EVENTS
         ) at
         ON
